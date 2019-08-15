@@ -1,0 +1,13 @@
+<html>
+  <body>
+    HoHo Fo Sho
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      var socket = io.connect('/');
+      // check url for device serials
+      socket.on('update', function (data) {
+        console.log('got update', data);
+      });
+    </script>
+  </body>
+</html>
