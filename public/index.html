@@ -1,13 +1,126 @@
 <html>
+  <head>
+    
+    <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v1.2.0/mapbox-gl.css' rel='stylesheet' />
+  </head>
   <body>
-    HoHo Fo Sho
+    <h1>HoHo Fo Sho</h1>
+    
+    <div id='map' style='width: 400px; height: 300px;'></div>
+
     <script src="/socket.io/socket.io.js"></script>
+    <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v1.2.0/mapbox-gl.js'></script>
     <script>
-      var socket = io.connect('/');
-      // check url for device serials
-      socket.on('update', function (data) {
-        console.log('got update', data);
+      var vehicles = {};
+
+      mapboxgl.accessToken = 'pk.eyJ1IjoiMTNwcm90b25zIiwiYSI6ImViN2ZiYTgxN2Y2MDRiZDY0ZDM5MGVhODM4M2Y0MDU2In0._FjwlF00n_W_k2GBaUnCHQ';
+      var map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/mapbox/streets-v9',
+        center: [-83.045833, 42.331389],
+        zoom: 10
       });
+    
+      var size = 100;
+
+      var pulsingDot = {
+        width: size,
+        height: size,
+        data: new Uint8Array(size * size * 4),
+
+        onAdd: function () {
+          var canvas = document.createElement('canvas');
+          canvas.width = this.width;
+          canvas.height = this.height;
+          this.context = canvas.getContext('2d');
+        },
+
+        render: function () {
+          var duration = 1000;
+          var t = (performance.now() % duration) / duration;
+
+          var radius = size / 2 * 0.3;
+          var outerRadius = size / 2 * 0.7 * t + radius;
+          var context = this.context;
+
+          // draw outer circle
+          context.clearRect(0, 0, this.width, this.height);
+          context.beginPath();
+          context.arc(this.width / 2, this.height / 2, outerRadius, 0, Math.PI * 2);
+          context.fillStyle = 'rgba(255, 200, 200,' + (1 - t) + ')';
+          context.fill();
+
+          // draw inner circle
+          context.beginPath();
+          context.arc(this.width / 2, this.height / 2, radius, 0, Math.PI * 2);
+          context.fillStyle = 'rgba(255, 100, 100, 1)';
+          context.strokeStyle = 'white';
+          context.lineWidth = 2 + 4 * (1 - t);
+          context.fill();
+          context.stroke();
+
+          // update this image's data with data from the canvas
+          this.data = context.getImageData(0, 0, this.width, this.height).data;
+
+          // keep the map repainting
+          map.triggerRepaint();
+
+          // return `true` to let the map know that the image was updated
+          return true;
+        }
+      };
+
+      function asPoints(objs) {
+          return {
+            "type": "FeatureCollection",
+            "features": Object.values(objs).map(function(item){
+              return {
+                "type": "Feature",
+                "geometry": {
+                  "type": "Point",
+                  "coordinates": [item.longitude, item.latitude]
+                },
+                "properties": {
+                  "title": item.name,
+                }
+              }
+            })
+          }
+        }
+
+      map.on('load', function () {
+        map.addImage('pulsing-dot', pulsingDot, { pixelRatio: 2 });
+        
+        map.addSource('point', {
+          "type": "geojson",
+          "data": asPoints({123: {
+            longitude: 0,
+            latitude: 0
+          }})
+        });
+        
+        map.addLayer({
+          "id": "points",
+          "type": "symbol",
+          "source": "point",
+          "layout": {
+            "icon-image": "pulsing-dot"
+          }
+        });
+
+        var socket = io.connect('/');
+        // check url for device serials
+        socket.on('vehicleUpdate', function (data) {
+          vehicles[data.id] = data;
+          
+          requestAnimationFrame(function(){
+            map.getSource('point').setData(asPoints(vehicles));
+          });
+          
+          console.log('got update', data);
+        });
+    });
+      
     </script>
   </body>
 </html>
