@@ -27,6 +27,7 @@
     "socket.io": "^2.2.0"
   },
   "devDependencies": {
+    "@turf/turf": "^5.1.6",
     "chai": "^4.2.0",
     "mocha": "^6.2.0",
     "sinon": "^7.4.1"

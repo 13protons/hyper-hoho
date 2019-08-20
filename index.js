@@ -20,6 +20,7 @@ app.get('/api/status', function(req, res) {
       res.json({
         status: 'running',
         running: true,
+        vehicles: vehicles
       })
     } else {
       res.json({
@@ -82,6 +83,31 @@ function updateVehicleLocations() {
       listener = setTimeout(pollForLocation, 1000 * 60);
     }
   });
+}
+
+if (process.env.FAKE_VEHICLE) {
+  const turf = require("@turf/turf");
+
+  nextPoint([-83.045833, 42.331389]);
+
+  function nextPoint(origin) {
+    io.emit('vehicleUpdate', {
+      name: "Jim Dandy",
+      longitude: origin[0], 
+      latitude: origin[1]
+    })
+    setTimeout(function(){
+      var center = origin;
+      var radius = .1;
+      var options = { steps: 10, units: 'kilometers', properties: { foo: 'bar' } };
+      var circle = turf.circle(center, radius, options);
+
+      var bbox = turf.bbox(circle);
+      var position = turf.randomPosition(bbox)
+      nextPoint(position);
+
+    },5000)
+  }
 }
 
 

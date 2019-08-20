@@ -2,30 +2,59 @@
   <head>
     
     <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v1.2.0/mapbox-gl.css' rel='stylesheet' />
+    <style>
+      body {
+        padding: 0;
+        margin: 0;
+        font-family: sans-serif;
+      }
+      #map {
+        width: 100%;
+        height: 100vh;
+      }
+
+      #status {
+        z-index: 1000;
+        background-color: #fff;
+        padding: 1em;
+        position: absolute;
+        top: 0em;
+        right: 0em;
+        margin: 1em;
+        
+      }
+    </style>
   </head>
   <body>
-    <h1>HoHo Fo Sho</h1>
+    <!-- <h1>HoHo Fo Sho</h1> -->
     <p id="status"></p>
-    <div id='map' style='width: 400px; height: 300px;'></div>
+    <div id='map' ></div>
     <script src="/dot.js"></script>
+    <script src="/position.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v1.2.0/mapbox-gl.js'></script>
     <script>
       var vehicles = {};
+      var layerName = 'hopOnHopOnTracking';
+      inFocus = "";
 
       fetch('/api/status')
           .then(function (response) {
             return response.json();
           })
           .then(function (myJson) {
-            var statusEl = document.getElementById('status');
             if (myJson.running) {
-              statusEl.textContent = 'Busses are currently in service!';
+              setStatus('Busses are currently in service!');
             } else {
-              statusEl.textContent = 'No busses currently running :\'(';
+              setStatus('No busses currently running :\'(');
             }
             console.log(JSON.stringify(myJson));
           });
+
+      function setStatus(msg) {
+        var statusEl = document.getElementById('status');
+        statusEl.textContent = msg;
+      }
 
       mapboxgl.accessToken = 'pk.eyJ1IjoiMTNwcm90b25zIiwiYSI6ImViN2ZiYTgxN2Y2MDRiZDY0ZDM5MGVhODM4M2Y0MDU2In0._FjwlF00n_W_k2GBaUnCHQ';
 
@@ -37,6 +66,7 @@
       });
     
       pulsingDot = PulsingDot(100, map);
+      blueDot = PulsingDot(100, map, [26, 118, 186], [121, 154, 201]);
 
       function asPoints(objs) {
         return {
@@ -58,23 +88,98 @@
 
       map.on('load', function () {
         map.addImage('pulsing-dot', pulsingDot, { pixelRatio: 2 });
-        
-        map.addSource('point', {
+
+        map.addSource(layerName, {
           "type": "geojson",
-          "data": asPoints({123: {
-            longitude: 0,
-            latitude: 0
-          }})
+          "data": asPoints({123: { longitude: 0, latitude: 0 }})
         });
         
         map.addLayer({
           "id": "points",
           "type": "symbol",
-          "source": "point",
+          "source": layerName,
           "layout": {
             "icon-image": "pulsing-dot"
           }
         });
+
+        Locator(function (pos) {
+          map.addImage('my-location', blueDot, { pixelRatio: 2 });
+
+          map.addSource('whereAmI', {
+            "type": "geojson",
+            "data": asPoints({
+              me: { longitude: pos.longitude, latitude: pos.latitude }
+            })
+          });
+
+          map.addLayer({
+            "id": "wherAmI",
+            "type": "symbol",
+            "source": 'whereAmI',
+            "layout": {
+              "icon-image": "my-location"
+            }
+          });
+          
+          map.easeTo({
+            duration: 1000,
+            center: [
+              pos.longitude,
+              pos.latitude
+            ],
+            zoom: 12
+          });
+        }, onPosUpdate);
+
+        map.on("click",
+          function (e) {
+            var clickedCluster
+            map.queryRenderedFeatures(e.point).forEach(function (element) {
+              if (element.source === layerName) {
+                focusVehicle(element.properties.title);
+              }
+            })
+          })
+
+        map.on("drag", blurVehicle);
+          
+        function onPosUpdate(pos) {
+          map.getSource('whereAmI').setData(asPoints({
+            me: { longitude: pos.longitude, latitude: pos.latitude }
+          }));
+        }
+
+        function focusVehicle(title) {
+          inFocus = title;
+          setStatus("Following " + title);
+          refocusOn(title, 15);
+        }
+
+        function blurVehicle() {
+          if (inFocus.length) {
+            inFocus = "";
+            setStatus('Your hair looks great today :)');
+          }
+        }
+
+        function refocusOn(name, zoom) {
+          Object.values(vehicles).forEach(function (vehicle) {
+            if (vehicle.name === name) {
+              var options = {
+                duration: 1000,
+                center: [
+                  vehicle.longitude,
+                  vehicle.latitude
+                ]
+              };
+              if (zoom) {
+                options.zoom = zoom;
+              }
+              map.easeTo(options);
+            }
+          });
+        }
 
         var socket = io.connect('/');
         // check url for device serials
@@ -82,10 +187,13 @@
           vehicles[data.id] = data;
           
           requestAnimationFrame(function(){
-            map.getSource('point').setData(asPoints(vehicles));
+            map.getSource(layerName).setData(asPoints(vehicles));
+            if (data.name === inFocus) {
+              refocusOn(data.name);
+            }
           });
           
-          console.log('got update', data);
+          // console.log('got update', data);
         });
     });
       
