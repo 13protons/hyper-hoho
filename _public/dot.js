@@ -1,7 +1,4 @@
-function PulsingDot(size, map, color1, color2) {
-  size = size || 100;
-  color1 = color1 || [255, 100, 100];
-  color2 = color2 || [255, 200, 200];
+function PulsingDot(size = 100, map, color1 = [255, 100, 100], color2 = [255, 200, 200]) {
 
   return {
     width: size,

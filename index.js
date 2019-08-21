@@ -2,39 +2,49 @@ const express = require('express');
 const _ = require('lodash');
 
 const app = express();
-var server = require('http').Server(app);
-var io = require('socket.io')(server);
+const server = require('http').Server(app);
+const io = require('socket.io')(server);
 
 const getConfig = require('./lib/getConfig');
 const timeBounds = require('./lib/timeBounds');
 const assetLocations = require('./lib/fetchAssetLocation');
 
-let PORT = process.env.PORT || 3030;
-let vehicles = {};
+const PORT = process.env.PORT || 3030;
+const vehicles = [];
 
 server.listen(PORT);
 
-app.get('/api/status', function(req, res) {
-  getConfig().then(function (data) {
+app.get('/api/status', (req, res) => {
+  getConfig().then((data) => {
     if (timeBounds(data.schedule)) {
       res.json({
         status: 'running',
         running: true,
-        vehicles: vehicles
-      })
+        vehicles
+      });
+    } else if (process.env.FAKE_VEHICLE) {
+      res.json({
+        status: 'running',
+        running: true,
+        vehicles: [{
+          name: 'Jim Dandy',
+          longitude: -83.045833,
+          latitude: 42.331389
+        }]
+      });
     } else {
       res.json({
         status: 'out of service',
         running: false,
-      })
+      });
     }
   });
-})
-app.use('/', express.static('./public'));
+});
+app.use('/', express.static('./dist'));
 
-let listener = undefined;
+let listener;
 
-io.on('connection', function (socket) {
+io.on('connection', (socket) => {
   // ensure polling
   if (!listener) {
     console.log('setup polling!');
@@ -49,36 +59,38 @@ io.on('connection', function (socket) {
         console.log('no more clients');
         listener = undefined;
       }
-    })
+    });
   });
 });
 
 function pollForLocation() {
-  io.of('/').clients((err, clients)=>{
+  io.of('/').clients((err, clients) => {
     if (err) throw err;
     if (clients.length) {
       console.log(`${clients.length} clients connected`);
       updateVehicleLocations();
     }
-  })
+  });
 }
 
 function updateVehicleLocations() {
-  getConfig().then(function (data) {
+  getConfig().then((data) => {
     console.log('config data', data);
     // in time window?
     if (timeBounds(data.schedule)) {
       // try to get locations (within last 10 min)
       assetLocations(data.org, data.devices)
-        .then(function (updates) {
-          updates.forEach(function (item) {
+        .then((updates) => {
+          vehicles = _.uniqBy(vehicles.concat(updates), 'id');
+
+          updates.forEach((item) => {
             // broadcast most recent ones
-            io.emit('vehicleUpdate', item)
-          })
+            io.emit('vehicleUpdate', item);
+          });
         })
-        .catch((function (err) {
-          console.log('failed to get device info', err)
-        }))
+        .catch(((err) => {
+          console.log('failed to get device info', err);
+        }));
     } else {
       listener = setTimeout(pollForLocation, 1000 * 60);
     }
@@ -86,29 +98,25 @@ function updateVehicleLocations() {
 }
 
 if (process.env.FAKE_VEHICLE) {
-  const turf = require("@turf/turf");
+  const turf = require('@turf/turf');
 
   nextPoint([-83.045833, 42.331389]);
 
   function nextPoint(origin) {
     io.emit('vehicleUpdate', {
-      name: "Jim Dandy",
-      longitude: origin[0], 
+      name: 'Jim Dandy',
+      longitude: origin[0],
       latitude: origin[1]
-    })
-    setTimeout(function(){
-      var center = origin;
-      var radius = .1;
-      var options = { steps: 10, units: 'kilometers', properties: { foo: 'bar' } };
-      var circle = turf.circle(center, radius, options);
+    });
+    setTimeout(() => {
+      const center = origin;
+      const radius = 0.1;
+      const options = { steps: 10, units: 'kilometers', properties: { foo: 'bar' } };
+      const circle = turf.circle(center, radius, options);
 
-      var bbox = turf.bbox(circle);
-      var position = turf.randomPosition(bbox)
+      const bbox = turf.bbox(circle);
+      const position = turf.randomPosition(bbox);
       nextPoint(position);
-
-    },5000)
+    }, 5000);
   }
 }
-
-
-

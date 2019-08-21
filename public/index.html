@@ -1,209 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
-
   <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <link rel="icon" href="<%= BASE_URL %>favicon.ico">
     <title>Hop On Hop Off Bus Service</title>
-    
-    <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v1.2.0/mapbox-gl.css' rel='stylesheet' />
-    <style>
-      body {
-        padding: 0;
-        margin: 0;
-        font-family: sans-serif;
-      }
-      #map {
-        width: 100%;
-        height: 100vh;
-      }
 
-      #status {
-        z-index: 1000;
-        background-color: #fff;
-        padding: 1em;
-        position: absolute;
-        top: 0em;
-        right: 0em;
-        margin: 1em;
-        
-      }
-    </style>
-  </head>
-  <body>
-    <!-- <h1>HoHo Fo Sho</h1> -->
-    <p id="status"></p>
-    <div id='map' ></div>
-    
-    <script src="/dot.js"></script>
-    <script src="/position.js"></script>
+    <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v1.2.0/mapbox-gl.css' rel='stylesheet' />
+
     <script src="/socket.io/socket.io.js"></script>
     <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v1.2.0/mapbox-gl.js'></script>
-    <script>
-      var vehicles = {};
-      var layerName = 'hopOnHopOnTracking';
-      inFocus = "";
-
-      fetch('/api/status')
-          .then(function (response) {
-            return response.json();
-          })
-          .then(function (myJson) {
-            if (myJson.running) {
-              setStatus('Busses are currently in service!');
-            } else {
-              setStatus('No busses currently running :\'(');
-            }
-            console.log(JSON.stringify(myJson));
-          });
-
-      function setStatus(msg) {
-        var statusEl = document.getElementById('status');
-        statusEl.textContent = msg;
-      }
-
-      mapboxgl.accessToken = 'pk.eyJ1IjoiMTNwcm90b25zIiwiYSI6ImViN2ZiYTgxN2Y2MDRiZDY0ZDM5MGVhODM4M2Y0MDU2In0._FjwlF00n_W_k2GBaUnCHQ';
-
-      var map = new mapboxgl.Map({
-        container: 'map',
-        style: 'mapbox://styles/mapbox/streets-v9',
-        center: [-83.045833, 42.331389],
-        zoom: 10
-      });
-    
-      pulsingDot = PulsingDot(100, map);
-      blueDot = PulsingDot(100, map, [26, 118, 186], [121, 154, 201]);
-
-      function asPoints(objs) {
-        return {
-          "type": "FeatureCollection",
-          "features": Object.values(objs).map(function(item){
-            return {
-              "type": "Feature",
-              "geometry": {
-                "type": "Point",
-                "coordinates": [item.longitude, item.latitude]
-              },
-              "properties": {
-                "title": item.name,
-              }
-            }
-          })
-        }
-      }
-
-      map.on('load', function () {
-        map.addImage('pulsing-dot', pulsingDot, { pixelRatio: 2 });
-
-        map.addSource(layerName, {
-          "type": "geojson",
-          "data": asPoints({123: { longitude: 0, latitude: 0 }})
-        });
-        
-        map.addLayer({
-          "id": "points",
-          "type": "symbol",
-          "source": layerName,
-          "layout": {
-            "icon-image": "pulsing-dot"
-          }
-        });
-
-        Locator(function (pos) {
-          map.addImage('my-location', blueDot, { pixelRatio: 2 });
-
-          map.addSource('whereAmI', {
-            "type": "geojson",
-            "data": asPoints({
-              me: { longitude: pos.longitude, latitude: pos.latitude }
-            })
-          });
-
-          map.addLayer({
-            "id": "wherAmI",
-            "type": "symbol",
-            "source": 'whereAmI',
-            "layout": {
-              "icon-image": "my-location"
-            }
-          });
-          
-          map.easeTo({
-            duration: 1000,
-            center: [
-              pos.longitude,
-              pos.latitude
-            ],
-            zoom: 12
-          });
-        }, onPosUpdate);
-
-        map.on("click",
-          function (e) {
-            var clickedCluster
-            map.queryRenderedFeatures(e.point).forEach(function (element) {
-              if (element.source === layerName) {
-                focusVehicle(element.properties.title);
-              }
-            })
-          })
-
-        map.on("drag", blurVehicle);
-          
-        function onPosUpdate(pos) {
-          map.getSource('whereAmI').setData(asPoints({
-            me: { longitude: pos.longitude, latitude: pos.latitude }
-          }));
-        }
-
-        function focusVehicle(title) {
-          inFocus = title;
-          setStatus("Following " + title);
-          refocusOn(title, 15);
-        }
-
-        function blurVehicle() {
-          if (inFocus.length) {
-            inFocus = "";
-            setStatus('Your hair looks great today :)');
-          }
-        }
-
-        function refocusOn(name, zoom) {
-          Object.values(vehicles).forEach(function (vehicle) {
-            if (vehicle.name === name) {
-              var options = {
-                duration: 1000,
-                center: [
-                  vehicle.longitude,
-                  vehicle.latitude
-                ]
-              };
-              if (zoom) {
-                options.zoom = zoom;
-              }
-              map.easeTo(options);
-            }
-          });
-        }
-
-        var socket = io.connect('/');
-        // check url for device serials
-        socket.on('vehicleUpdate', function (data) {
-          vehicles[data.id] = data;
-          
-          requestAnimationFrame(function(){
-            map.getSource(layerName).setData(asPoints(vehicles));
-            if (data.name === inFocus) {
-              refocusOn(data.name);
-            }
-          });
-          
-          // console.log('got update', data);
-        });
-    });
-      
-    </script>
+  </head>
+  <body>
+    <noscript>
+      <strong>We're sorry but this page doesn't work properly without JavaScript enabled. Please enable it to continue.</strong>
+    </noscript>
+    <div id="app"></div>
+    <!-- built files will be auto injected -->
   </body>
 </html>
