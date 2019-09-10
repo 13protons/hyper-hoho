@@ -9,10 +9,14 @@ const getConfig = require('./lib/getConfig');
 const timeBounds = require('./lib/timeBounds');
 const assetLocations = require('./lib/fetchAssetLocation');
 
+const dataLayers = require('./lib/dataLayers');
+
 const PORT = process.env.PORT || 3030;
 const vehicles = [];
 
 server.listen(PORT);
+
+app.get('/api/layers', dataLayers);
 
 app.get('/api/status', (req, res) => {
   getConfig().then((data) => {

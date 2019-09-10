@@ -1,59 +1,82 @@
 <template>
   <div id="overlay">
     <p>{{ statusMessage }}</p>
-
     <div v-if="displayFocusInfo">
       <p>Following: {{ inFocus.name }}</p>
       <a href="#" @click.prevent="unfollow">clear</a>
     </div>
-    
     <div v-if="!displayFocusInfo">
       <p v-for="item in vehicles" v-bind:key="item.name">
         <a href="#" @click.prevent="follow(item.name)">{{item.name}}</a>
       </p>
     </div>
+    <div>
+      <label class="checkbox" v-if="mustHaves">
+        <input type="checkbox" v-model="showMustHaves" />
+        Must Haves
+      </label>
+      <label class="checkbox" v-if="niceHaves">
+        <input type="checkbox" v-model="showNiceHaves" />
+        Nice Places
+      </label>
+      <label class="checkbox" v-if="hotels">
+        <input type="checkbox" v-model="showHotels" />
+        Hotels
+      </label>
+    </div>
   </div>
 </template>
 
 <script>
-import { mapGetters } from 'vuex';
+import { mapGetters } from "vuex";
 
 export default {
-  name: 'overlay',
+  name: "overlay",
   data() {
     return {
+      showHotels: false,
+      showMustHaves: true,
+      showNiceHaves: false
     };
   },
   computed: {
-    ...mapGetters([
-      'vehicles', 'inFocus', 'status'
-    ]),
+    ...mapGetters(["vehicles", "inFocus", "status", "hotels", "mustHaves", "niceHaves"]),
     displayFocusInfo() {
       try {
         return !!this.inFocus.name;
-      } catch(e) {
+      } catch (e) {
         return false;
       }
     },
     statusMessage() {
       if (this.status) {
-        return 'Busses are running!'
+        return "Busses are running!";
       }
-      return 'Sorry, no busses are running right now :\'('
+      return "Sorry, no busses are running right now :'(";
     }
   },
   methods: {
+    contains(text, search) {
+      return text.indexOf(search) > -1;
+    },
     follow(name) {
-      this.$store.commit('setFocus', name);
+      this.$store.commit("setFocus", name);
     },
     unfollow() {
-      this.$store.commit('clearFocus')
+      this.$store.commit("clearFocus");
+    },
+    
+    addDataLayers() {
+      this.$store.dispatch("getDataLayers").then(data => {
+        console.log("got some layers overlay", data);
+        // add them to the map
+      });
     }
   },
   mounted() {
+    // this.addDataLayers();
   }
 };
-
 </script>
 
 <style scoped>
@@ -63,11 +86,11 @@ export default {
   top: 1em;
   right: 1em;
   padding: 1em;
-  background-color: rgba(255, 255, 255, .95);
+  background-color: rgba(255, 255, 255, 0.95);
 
   border-radius: 4px;
-  border: 1px solid rgba(0, 0, 0, .3);
-  box-shadow: 0px 5px 10px rgba(0, 0, 0, .1);
+  border: 1px solid rgba(0, 0, 0, 0.3);
+  box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.1);
   min-width: 100px;
   max-width: 480px;
 }

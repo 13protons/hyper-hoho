@@ -9,12 +9,19 @@ var geoOptions = {
   maximumAge: 0
 }
 
+var fetchLayers;
+
 export default new Vuex.Store({
   state: {
     vehicles: {},
     inFocus: '',
     isRunning: false,
-    position: {}
+    position: {},
+    layers: [],
+    mapLoaded: false,
+    showHotels: false,
+    showMustHaves: true,
+    showNiceHaves: false
   },
   getters: {
     inFocus(state) {
@@ -22,6 +29,12 @@ export default new Vuex.Store({
         return state.position;
       }
       return Object.values(state.vehicles).find(item => item.name === state.inFocus);
+    },
+    showHotels(state) { return state.showHotels; },
+    showMustHaves(state) { return state.showMustHaves; },
+    showNiceHaves(state) { return state.showNiceHaves; },
+    mapLoaded(state) {
+      return state.mapLoaded;
     },
     vehicles(state) {
       return state.vehicles;
@@ -31,9 +44,33 @@ export default new Vuex.Store({
     },
     status(state) {
       return state.isRunning;
+    },
+    layers(state) {
+      return state.layers;
+    },
+    routes(state) {
+      return state.layers.filter(item => contains(item.id, "directions"));
+    },
+    hotels(state) {
+      return state.layers.find(item => contains(item.id, "hotel"));
+    },
+    mustHaves(state) {
+      return state.layers.find(item => contains(item.id, "must"));
+    },
+    niceHaves(state) {
+      return state.layers.find(item => contains(item.id, "nice"));
     }
   },
   mutations: {
+    setShowHotels(state, data) { state.showHotels = data; },
+    setShowMustHaves(state, data) { state.showMustHaves = data; },
+    setShowNiceHaves(state, data) { state.showNiceHaves = data; },
+    mapDidLoad(state) {
+      state.mapLoaded = true;
+    },
+    setLayers(state, data) {
+      state.layers = data;
+    },
     setStatus(state, data) {
       state.isRunning = !!data;
     },
@@ -59,6 +96,25 @@ export default new Vuex.Store({
     }
   },
   actions: {
+    getDataLayers(store) {
+      if (fetchLayers) {
+        return fetchLayers;
+      }
+      return fetchLayers = new Promise((resolve, reject)=>{
+        if (store.layers) {
+          return resolve(store.layers);
+        }
+
+        fetch('/api/layers')
+          .then(function (response) {
+            return response.json();
+          })
+          .then((data) => {
+            store.commit('setLayers', data);
+            resolve(data);
+          });
+      })
+    },
     initializeStore(store) {
       fetch('/api/status')
         .then(function (response) {
@@ -91,3 +147,7 @@ export default new Vuex.Store({
     }
   },
 });
+
+function contains(text, search) {
+  return text.indexOf(search) > -1;
+}

@@ -15,14 +15,14 @@ export default {
   data() {
     return {
       map: undefined,
-      vehicleLayerName: 'hopOnHopOnTracking',
+      vehicleLayerName: 'hopOnHopOffTracking',
       selfLayerName: 'whereAmI',
-      mapLoaded: false,
+      // mapLoaded: false,
       didZoomToSelf: false
     };
   },
   computed: {
-    ...mapGetters(['vehicles', 'inFocus', 'myPosition']),
+    ...mapGetters(['vehicles', 'inFocus', 'myPosition', 'mapLoaded', 'routes', 'hotels', 'mustHaves', 'niceHaves']),
     vehicleCollection() {
       return this.asPoints(this.vehicles);
     },
@@ -83,10 +83,95 @@ export default {
         }))
       };
     },
+    addDataLayers() {
+      this.$store.dispatch('getDataLayers')
+        .then((data)=>{
+          this.addRouteLayer();
+          this.addHotelLayer();
+          this.addMustLayer();
+          this.addNiceLayer();
+        })
+    },
+    addMustLayer() {
+      this.addSourceFromCollection(this.mustHaves);
+
+      map.addLayer({
+        id: this.mustHaves.id,
+        source: this.mustHaves.id,
+        type: 'symbol',
+        layout: {
+          'icon-image': 'star-15',
+          // 'text-field': '{name}',
+          // 'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
+          // 'text-offset': [0, 0.6],
+          // 'text-anchor': 'top'
+        }
+      });
+    },
+    addNiceLayer() {
+      this.addSourceFromCollection(this.niceHaves);
+
+      map.addLayer({
+        id: this.niceHaves.id,
+        source: this.niceHaves.id,
+        type: 'symbol',
+        layout: {
+          'icon-image': 'marker-15',
+          // 'text-field': '{name}',
+          // 'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
+          // 'text-offset': [0, 0.6],
+          // 'text-anchor': 'top'
+        }
+      });
+    },
+    addHotelLayer() {
+      this.addSourceFromCollection(this.hotels);
+
+      map.addLayer({
+        id: this.hotels.id,
+        source: this.hotels.id,
+        type: 'symbol',
+        layout: {
+          'icon-image': 'lodging-15',
+          // 'text-field': '{name}',
+          // 'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
+          // 'text-offset': [0, 0.6],
+          // 'text-anchor': 'top'
+        },
+        paint: {
+          // "text-size": 8,
+          "icon-color" : "green"
+        }
+      });
+    },
+    addRouteLayer() {
+      this.routes.forEach((route)=>{
+        this.addSourceFromCollection(route);
+          
+        map.addLayer({
+          id: route.id,
+          source: route.id,
+          type: "line",
+          paint: {
+            "line-width": 3,
+            "line-color": '#33C9EB'
+          }
+        });
+      });
+    },
+    addSourceFromCollection(collection) {
+      map.addSource(collection.id, {
+        "type": "geojson",
+        "data": collection
+      });
+    },
     mapDidLoad() {
-      this.mapLoaded = true;
+      
+      this.$store.commit('mapDidLoad');
+
       this.addVehiclesLayer();
-      this.addMyPositionLayer()
+      this.addMyPositionLayer();
+      this.addDataLayers();
 
       map.on("click", (e) => {
         map.queryRenderedFeatures(e.point).forEach((element) => {
@@ -144,7 +229,7 @@ export default {
   mounted() {
     map = new mapboxgl.Map({
       container: 'map',
-      style: 'mapbox://styles/mapbox/streets-v9',
+      style: 'mapbox://styles/mapbox/basic-v9',
       center: [-83.045833, 42.331389],
       zoom: 10
     });

@@ -1,11 +1,13 @@
 <template>
   <div id="app">
-    <Overlay />
+    <Overlay v-if="mapLoaded" />
     <Map/>
   </div>
 </template>
 
 <script>
+import {mapGetters} from 'vuex';
+
 import Map from './components/Map.vue';
 import Overlay from './components/Overlay.vue';
 
@@ -17,8 +19,11 @@ export default {
     Map,
     Overlay
   },
+  computed: {
+    ...mapGetters(['mapLoaded']),
+  },
   mounted() {
-    this.$store.dispatch('initializeStore'); 
+    this.$store.dispatch('initializeStore');
   }
 };
 </script>
