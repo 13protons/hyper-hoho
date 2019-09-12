@@ -38,7 +38,10 @@ export default {
   watch: {
     vehicleCollection(newVal, oldVal) {
       if (this.mapLoaded) {
-        map.getSource(this.vehicleLayerName).setData(newVal);
+        window.requestAnimationFrame(()=>{
+          map.getSource(this.vehicleLayerName).setData(newVal);
+        })
+        
       }
     },
     inFocus(newVal) {
@@ -105,6 +108,7 @@ export default {
           // 'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
           // 'text-offset': [0, 0.6],
           // 'text-anchor': 'top'
+          
         }
       });
     },
@@ -115,6 +119,13 @@ export default {
         id: this.niceHaves.id,
         source: this.niceHaves.id,
         type: 'symbol',
+        paint: {
+          'icon-opacity': [
+            'interpolate', ['linear'], ['zoom'],
+            14, ['literal', 0.0],
+            15, ['literal', 1.0],
+          ]
+        },
         layout: {
           'icon-image': 'marker-15',
           // 'text-field': '{name}',
@@ -166,7 +177,7 @@ export default {
       });
     },
     mapDidLoad() {
-      
+      map.crossSourceCollisions = false;
       this.$store.commit('mapDidLoad');
 
       this.addVehiclesLayer();
@@ -203,7 +214,8 @@ export default {
         "type": "symbol",
         "source": this.selfLayerName,
         "layout": {
-          "icon-image": "my-location"
+          "icon-image": "my-location",
+          'icon-allow-overlap': true,
         }
       });
     },
@@ -221,9 +233,23 @@ export default {
         "type": "symbol",
         "source": this.vehicleLayerName,
         "layout": {
-          "icon-image": "pulsing-dot"
+          "icon-image": "pulsing-dot",
+          'icon-allow-overlap': true
+        },
+        "transition": {
+          "duration": 100,
+          "delay": 0
         }
       });
+      // map.addLayer({
+      //   "id": this.vehicleLayerName,
+      //   "source": this.vehicleLayerName,
+      //   "type": "circle",
+      //   "paint": {
+      //     "circle-radius": 10,
+      //     "circle-color": "#ff6464"
+      //   }
+      // });
     }
   },
   mounted() {
@@ -231,7 +257,9 @@ export default {
       container: 'map',
       style: 'mapbox://styles/mapbox/basic-v9',
       center: [-83.045833, 42.331389],
-      zoom: 10
+      zoom: 10,
+      crossSourceCollisions: false
+
     });
 
     map.on('load', this.mapDidLoad);
