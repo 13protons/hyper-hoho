@@ -11,16 +11,8 @@
       </p>
     </div>
     <div>
-      <label class="checkbox" v-if="mustHaves">
-        <input type="checkbox" v-model="showMustHaves" />
-        Must Haves
-      </label>
-      <label class="checkbox" v-if="niceHaves">
-        <input type="checkbox" v-model="showNiceHaves" />
-        Nice Places
-      </label>
       <label class="checkbox" v-if="hotels">
-        <input type="checkbox" v-model="showHotels" />
+        <input type="checkbox" v-model="showHotels" @change="syncHotelToggle" />
         Hotels
       </label>
     </div>
@@ -35,8 +27,6 @@ export default {
   data() {
     return {
       showHotels: false,
-      showMustHaves: true,
-      showNiceHaves: false
     };
   },
   computed: {
@@ -65,7 +55,10 @@ export default {
     unfollow() {
       this.$store.commit("clearFocus");
     },
-    
+    syncHotelToggle() {
+      console.log('sync hotel toggle', this.showHotels);
+      this.$store.commit('setShowHotels', this.showHotels);
+    },
     addDataLayers() {
       this.$store.dispatch("getDataLayers").then(data => {
         console.log("got some layers overlay", data);

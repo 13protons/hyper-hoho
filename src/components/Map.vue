@@ -22,7 +22,7 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(['vehicles', 'inFocus', 'myPosition', 'mapLoaded', 'routes', 'hotels', 'mustHaves', 'niceHaves']),
+    ...mapGetters(['vehicles', 'inFocus', 'myPosition', 'mapLoaded', 'routes', 'hotels', 'mustHaves', 'niceHaves', 'showHotels']),
     vehicleCollection() {
       return this.asPoints(this.vehicles);
     },
@@ -42,6 +42,13 @@ export default {
           map.getSource(this.vehicleLayerName).setData(newVal);
         })
         
+      }
+    },
+    showHotels(newVal) {
+      if (newVal) {
+        map.setLayoutProperty(this.hotels.id, 'visibility', 'visible');
+      } else {
+        map.setLayoutProperty(this.hotels.id, 'visibility', 'none');
       }
     },
     inFocus(newVal) {
@@ -148,10 +155,16 @@ export default {
           // 'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
           // 'text-offset': [0, 0.6],
           // 'text-anchor': 'top'
+          'visibility': this.showHotels ? 'visible' : 'none'
         },
         paint: {
           // "text-size": 8,
-          "icon-color" : "green"
+          "icon-color" : "green",
+          'icon-opacity': [
+            'interpolate', ['linear'], ['zoom'],
+            11, ['literal', 0.0],
+            12, ['literal', 1.0],
+          ]
         }
       });
     },
@@ -185,7 +198,8 @@ export default {
       this.addDataLayers();
 
       map.on("click", (e) => {
-        map.queryRenderedFeatures(e.point).forEach((element) => {
+        let elements = map.queryRenderedFeatures(e.point);
+        elements.forEach((element) => {
           if (element.source === this.vehicleLayerName) {
             this.$store.commit('setFocus', element.properties.title)
           }
@@ -193,6 +207,8 @@ export default {
             this.$store.commit('focusOnMe');
           }
         })
+        this.$store.dispatch('tryFocus', elements);
+
       })
 
       map.on("drag", () => {

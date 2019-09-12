@@ -21,7 +21,9 @@ export default new Vuex.Store({
     mapLoaded: false,
     showHotels: false,
     showMustHaves: true,
-    showNiceHaves: false
+    showNiceHaves: false,
+    tooltipVisible: false,
+    tooltipContent: ''
   },
   getters: {
     inFocus(state) {
@@ -96,6 +98,9 @@ export default new Vuex.Store({
     }
   },
   actions: {
+    tryFocus(store, data) {
+      console.log('trying to focus on elements', data);
+    },
     getDataLayers(store) {
       if (fetchLayers) {
         return fetchLayers;
