@@ -89,7 +89,10 @@ export default {
         features: Object.values(objs).map(item => ({
           type: 'Feature',
           geometry: { type: 'Point', coordinates: [item.longitude, item.latitude] },
-          properties: { title: item.name, }
+          properties: { 
+            title: item.name,
+            coords: [item.longitude, item.latitude]
+          }
         }))
       };
     },
@@ -207,7 +210,23 @@ export default {
             this.$store.commit('focusOnMe');
           }
         })
-        this.$store.dispatch('tryFocus', elements);
+
+        this.$store.dispatch('tryFocus', elements).then((subject)=>{
+          // reFocus
+          console.log('props', subject.properties);
+          let coords = JSON.parse(subject.properties.coord);
+
+          new mapboxgl.Popup({closeOnClick: true})
+            .setLngLat(coords)
+            .setText(subject.properties.name)
+            .addTo(map);
+          
+          map.easeTo({
+            center: coords
+          });
+        }, (err)=>{
+          console.warn('nothing interesting there...', err)
+        })
 
       })
 

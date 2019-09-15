@@ -20,8 +20,6 @@ export default new Vuex.Store({
     layers: [],
     mapLoaded: false,
     showHotels: false,
-    showMustHaves: true,
-    showNiceHaves: false,
     tooltipVisible: false,
     tooltipContent: ''
   },
@@ -99,7 +97,25 @@ export default new Vuex.Store({
   },
   actions: {
     tryFocus(store, data) {
+    
+      let knownItem = data.find((item)=>{
+        return store.state.layers.find((layer)=>{
+          if (contains(item.source, "directions")) {
+            return false;
+          }
+          return layer.id === item.source;
+        })
+      })
+
       console.log('trying to focus on elements', data);
+      if (knownItem) {
+        return Promise.resolve(knownItem);
+      } else {
+        return Promise.reject('no items found');
+      }
+
+      // return mustHave || hotel || niceHave || undefined;
+
     },
     getDataLayers(store) {
       if (fetchLayers) {
