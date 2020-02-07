@@ -5,7 +5,7 @@
 </template>
 
 <script>
-import {mapGetters} from 'vuex';
+import { mapGetters } from 'vuex';
 import PulsingDot from '../lib/dot';
 
 let map;
@@ -22,26 +22,38 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(['vehicles', 'inFocus', 'myPosition', 'mapLoaded', 'routes', 'hotels', 'mustHaves', 'niceHaves', 'showHotels']),
+    ...mapGetters(['vehicles', 'inFocus', 'myPosition', 'mapLoaded', 'routes', 'hotels', 'mustHaves', 'niceHaves', 'showHotels', 'overlayStatus', 'bounds']),
     vehicleCollection() {
       return this.asPoints(this.vehicles);
     },
     myPositionCollection() {
       return this.asPoints({
-        me: { 
-          longitude: this.myPosition.longitude, 
-          latitude: this.myPosition.latitude 
+        me: {
+          longitude: this.myPosition.longitude,
+          latitude: this.myPosition.latitude
         }
       });
+    },
+    focusOffset() {
+      let full = window.innerHeight;
+      let ratios = {
+        full: 1,
+        middle: .5,
+        bottom: .25,
+        hidden: 0
+      }
+      return (ratios[this.overlayStatus] * full * -1);
     }
   },
   watch: {
-    vehicleCollection(newVal, oldVal) {
+    overlayStatus(newVal) {
+      this.reFocus();
+    },
+    vehicleCollection(newVal) {
       if (this.mapLoaded) {
-        window.requestAnimationFrame(()=>{
+        window.requestAnimationFrame(() => {
           map.getSource(this.vehicleLayerName).setData(newVal);
-        })
-        
+        });
       }
     },
     showHotels(newVal) {
@@ -59,27 +71,37 @@ export default {
         map.getSource(this.selfLayerName).setData(newVal);
         if (!this.didZoomToSelf && !this.inFocus) {
           this.didZoomToSelf = true;
-          console.log('time to zoom', this.myPosition)
-          this.reFocus(this.myPosition, 12);
+          console.log('time to zoom', this.myPosition);
+          // this.reFocus(this.myPosition, 12);
         }
       }
     }
   },
   methods: {
     reFocus(obj, zoom) {
-      if (!obj || !obj.longitude) { return }
+      map.stop();
+      let center;
 
-      let options = {
-        duration: 1000,
-        center: [
+      if (!obj || !obj.longitude) {
+        center = map.getCenter();
+      } else {
+        center = [
           obj.longitude,
           obj.latitude
         ]
+      }
+
+      const options = {
+        duration: 500,
+        center: center,
+        // offset: [0, this.focusOffset ]
       };
+
       if (zoom) {
         options.zoom = zoom;
       }
       if (this.mapLoaded) {
+        console.log('options', options);
         map.easeTo(options);
       }
     },
@@ -89,7 +111,7 @@ export default {
         features: Object.values(objs).map(item => ({
           type: 'Feature',
           geometry: { type: 'Point', coordinates: [item.longitude, item.latitude] },
-          properties: { 
+          properties: {
             title: item.name,
             coords: [item.longitude, item.latitude]
           }
@@ -98,12 +120,24 @@ export default {
     },
     addDataLayers() {
       this.$store.dispatch('getDataLayers')
-        .then((data)=>{
+        .then(() => {
           this.addRouteLayer();
           this.addHotelLayer();
           this.addMustLayer();
           this.addNiceLayer();
-        })
+
+        console.log('bounds to fit', JSON.parse(JSON.stringify(this.bounds)));
+
+          map.fitBounds(JSON.parse(JSON.stringify(this.bounds)), {
+            padding: {
+              top: 0,
+              right: 0,
+              bottom: 20,
+              left: 0
+            },
+            linear: true
+          });
+        });
     },
     addMustLayer() {
       this.addSourceFromCollection(this.mustHaves);
@@ -118,7 +152,7 @@ export default {
           // 'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
           // 'text-offset': [0, 0.6],
           // 'text-anchor': 'top'
-          
+
         }
       });
     },
@@ -138,10 +172,6 @@ export default {
         },
         layout: {
           'icon-image': 'marker-15',
-          // 'text-field': '{name}',
-          // 'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
-          // 'text-offset': [0, 0.6],
-          // 'text-anchor': 'top'
         }
       });
     },
@@ -158,11 +188,11 @@ export default {
           // 'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
           // 'text-offset': [0, 0.6],
           // 'text-anchor': 'top'
-          'visibility': this.showHotels ? 'visible' : 'none'
+          visibility: this.showHotels ? 'visible' : 'none'
         },
         paint: {
           // "text-size": 8,
-          "icon-color" : "green",
+          'icon-color': 'green',
           'icon-opacity': [
             'interpolate', ['linear'], ['zoom'],
             11, ['literal', 0.0],
@@ -172,24 +202,24 @@ export default {
       });
     },
     addRouteLayer() {
-      this.routes.forEach((route)=>{
+      this.routes.forEach((route) => {
         this.addSourceFromCollection(route);
-          
+
         map.addLayer({
           id: route.id,
           source: route.id,
-          type: "line",
+          type: 'line',
           paint: {
-            "line-width": 3,
-            "line-color": '#33C9EB'
+            'line-width': 3,
+            'line-color': '#33C9EB'
           }
         });
       });
     },
     addSourceFromCollection(collection) {
       map.addSource(collection.id, {
-        "type": "geojson",
-        "data": collection
+        type: 'geojson',
+        data: collection
       });
     },
     mapDidLoad() {
@@ -200,38 +230,37 @@ export default {
       this.addMyPositionLayer();
       this.addDataLayers();
 
-      map.on("click", (e) => {
-        let elements = map.queryRenderedFeatures(e.point);
+      map.on('click', (e) => {
+        const elements = map.queryRenderedFeatures(e.point);
         elements.forEach((element) => {
           if (element.source === this.vehicleLayerName) {
-            this.$store.commit('setFocus', element.properties.title)
+            this.$store.commit('setFocus', element.properties.title);
           }
           if (element.source === this.selfLayerName) {
             this.$store.commit('focusOnMe');
           }
-        })
+        });
 
-        this.$store.dispatch('tryFocus', elements).then((subject)=>{
+        this.$store.dispatch('tryFocus', elements).then((subject) => {
           // reFocus
           console.log('props', subject.properties);
-          let coords = JSON.parse(subject.properties.coord);
+          const coords = JSON.parse(subject.properties.coord);
 
-          new mapboxgl.Popup({closeOnClick: true})
+          new mapboxgl.Popup({ closeOnClick: true })
             .setLngLat(coords)
             .setText(subject.properties.name)
             .addTo(map);
-          
+
           map.easeTo({
             center: coords
           });
-        }, (err)=>{
-          console.warn('nothing interesting there...', err)
-        })
+        }, (err) => {
+          console.warn('nothing interesting there...', err);
+        });
+      });
 
-      })
-
-      map.on("drag", () => {
-        this.$store.commit('clearFocus')
+      map.on('drag', () => {
+        this.$store.commit('clearFocus');
       });
     },
     addMyPositionLayer() {
@@ -240,16 +269,16 @@ export default {
       map.addImage('my-location', blueDot, { pixelRatio: 2 });
 
       map.addSource(this.selfLayerName, {
-        "type": "geojson",
-        "data": {type: 'FeatureCollection', 'features': []}
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] }
       });
 
       map.addLayer({
-        "id": this.selfLayerName,
-        "type": "symbol",
-        "source": this.selfLayerName,
-        "layout": {
-          "icon-image": "my-location",
+        id: this.selfLayerName,
+        type: 'symbol',
+        source: this.selfLayerName,
+        layout: {
+          'icon-image': 'my-location',
           'icon-allow-overlap': true,
         }
       });
@@ -259,21 +288,21 @@ export default {
       map.addImage('pulsing-dot', pulsingDot, { pixelRatio: 2 });
 
       map.addSource(this.vehicleLayerName, {
-        "type": "geojson",
-        "data": this.vehicleCollection
+        type: 'geojson',
+        data: this.vehicleCollection
       });
-      
+
       map.addLayer({
-        "id": this.vehicleLayerName,
-        "type": "symbol",
-        "source": this.vehicleLayerName,
-        "layout": {
-          "icon-image": "pulsing-dot",
+        id: this.vehicleLayerName,
+        type: 'symbol',
+        source: this.vehicleLayerName,
+        layout: {
+          'icon-image': 'pulsing-dot',
           'icon-allow-overlap': true
         },
-        "transition": {
-          "duration": 100,
-          "delay": 0
+        transition: {
+          duration: 100,
+          delay: 0
         }
       });
       // map.addLayer({
@@ -294,7 +323,6 @@ export default {
       center: [-83.045833, 42.331389],
       zoom: 10,
       crossSourceCollisions: false
-
     });
 
     map.on('load', this.mapDidLoad);

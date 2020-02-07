@@ -1,5 +1,6 @@
 const express = require('express');
 const _ = require('lodash');
+const cookiesMiddleware = require('universal-cookie-express');
 
 const app = express();
 const server = require('http').Server(app);
@@ -16,27 +17,45 @@ const vehicles = [];
 
 server.listen(PORT);
 
+app
+  .use(cookiesMiddleware())
+  .use(function (req, res, next) {
+    const eventID = _.get(req, 'query.e', null);
+    if (!_.isNull(eventID)) {
+      console.log('event id', eventID);
+      // console.log('session: ', req.session);
+      req.universalCookies.set('eventID', eventID, {
+        path: '/',
+        httpOnly: true,
+        sameSite: true
+      });
+    }
+    next();
+  });
+
 app.get('/api/layers', dataLayers);
 
 app.get('/api/status', (req, res) => {
-  getConfig().then((data) => {
-    if (timeBounds(data.schedule)) {
-      res.json({
-        status: 'running',
-        running: true,
-        vehicles
-      });
-    } else if (process.env.FAKE_VEHICLE) {
-      res.json({
-        status: 'running',
-        running: true,
-        vehicles: [{
-          name: 'Jim Dandy',
-          longitude: -83.045833,
-          latitude: 42.331389
-        }]
-      });
-    } else {
+  getConfig(req.universalCookies.get('eventID')).then((data) => {
+    try {
+      if (timeBounds(data.schedule)) {
+        res.json({
+          status: 'running',
+          running: true,
+          vehicles
+        });
+      } else if (process.env.FAKE_VEHICLE) {
+        res.json({
+          status: 'running',
+          running: true,
+          vehicles: [{
+            name: 'Jim Dandy',
+            longitude: -83.045833,
+            latitude: 42.331389
+          }]
+        });
+      } 
+    } catch(e) {
       res.json({
         status: 'out of service',
         running: false,
@@ -44,7 +63,10 @@ app.get('/api/status', (req, res) => {
     }
   });
 });
+
 app.use('/', express.static('./dist'));
+
+
 
 let listener;
 
@@ -72,14 +94,14 @@ function pollForLocation() {
     if (err) throw err;
     if (clients.length) {
       console.log(`${clients.length} clients connected`);
-      updateVehicleLocations();
+      // updateVehicleLocations();
     }
   });
 }
 
 function updateVehicleLocations() {
   getConfig().then((data) => {
-    console.log('config data', data);
+    // console.log('config data', data);
     // in time window?
     if (timeBounds(data.schedule)) {
       // try to get locations (within last 10 min)
@@ -114,7 +136,7 @@ if (process.env.FAKE_VEHICLE) {
     });
     setTimeout(() => {
       const center = origin;
-      const radius = 0.1;
+      const radius = 0.1; 
       const options = { steps: 10, units: 'kilometers', properties: { foo: 'bar' } };
       const circle = turf.circle(center, radius, options);
 
