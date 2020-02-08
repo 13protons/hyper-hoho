@@ -1,3 +1,5 @@
+const util = require('util');
+
 const express = require('express');
 const _ = require('lodash');
 const cookiesMiddleware = require('universal-cookie-express');
@@ -7,13 +9,15 @@ const server = require('http').Server(app);
 const io = require('socket.io')(server);
 
 const getConfig = require('./lib/getConfig');
-const timeBounds = require('./lib/timeBounds');
+const getStatus = require('./lib/getStatus');
 const assetLocations = require('./lib/fetchAssetLocation');
 
 const dataLayers = require('./lib/dataLayers');
 
 const PORT = process.env.PORT || 3030;
 const vehicles = [];
+
+const sockets = {};
 
 server.listen(PORT);
 
@@ -36,113 +40,97 @@ app
 app.get('/api/layers', dataLayers);
 
 app.get('/api/status', (req, res) => {
-  getConfig(req.universalCookies.get('eventID')).then((data) => {
-    try {
-      if (timeBounds(data.schedule)) {
-        res.json({
-          status: 'running',
-          running: true,
-          vehicles
-        });
-      } else if (process.env.FAKE_VEHICLE) {
-        res.json({
-          status: 'running',
-          running: true,
-          vehicles: [{
-            name: 'Jim Dandy',
-            longitude: -83.045833,
-            latitude: 42.331389
-          }]
-        });
-      } 
-    } catch(e) {
-      res.json({
-        status: 'out of service',
+  const eventID = req.universalCookies.get('eventID');
+  getConfig(eventID).then((data) => {
+    // console.log(`data for ${eventID}`, data);
+
+    res.json({
+      status: getStatus(data),
+      event: _.pick(data, ['description', 'title', 'eventID'])
+    });
+  })
+  .catch((err)=>{
+    console.log('bad status request', err);
+    res.json({
+      status: {
         running: false,
+        message: err
+      },
+      event: undefined
+    })
+  })
+
+  if (eventID && !sockets.eventID) {
+    const nsp = io.of(`/${eventID}`);
+    _.set(sockets, eventID, nsp);
+    nsp.on('connection', (socket) => {
+      console.log(`there's a guest in the ${eventID} room.`)
+      nsp.clients((err, clients) => {
+        if (!err) { console.log(`there are now ${clients.length} clients`); }
       });
-    }
-  });
+      updateVehicleLocations(eventID)
+
+      socket.on('disconnect', (reason) => {
+        console.log(`disconnected because of`, reason)
+        nsp.clients((err, clients) => {
+          if (err) throw err;
+          if (!clients.length) {
+            console.log(`no more clients in ${eventID}`);
+            _.unset(sockets, eventID);
+          }
+        });
+      });
+
+    })
+  }
 });
 
 app.use('/', express.static('./dist'));
 
 
+// let listener;
 
-let listener;
+// io.on('connection', (socket) => {
+//   // ensure polling
+//   // console.log(util.inspect(socket, {colors: true, depth: 4}));
+//   if (!listener) {
+//     console.log('setup polling!');
+//     pollForLocation();
+//     listener = setTimeout(pollForLocation, 5000);
+//   }
 
-io.on('connection', (socket) => {
-  // ensure polling
-  if (!listener) {
-    console.log('setup polling!');
-    pollForLocation();
-    listener = setTimeout(pollForLocation, 5000);
-  }
+//   socket.on('disconnect', (reason) => {
+//     io.of('/').clients((err, clients) => {
+//       if (err) throw err;
+//       if (!clients.length) {
+//         console.log('no more clients');
+//         listener = undefined;
+//       }
+//     });
+//   });
+// });
 
-  socket.on('disconnect', (reason) => {
-    io.of('/').clients((err, clients) => {
-      if (err) throw err;
-      if (!clients.length) {
-        console.log('no more clients');
-        listener = undefined;
-      }
-    });
-  });
-});
+// function pollForLocation() {
+//   io.of('/').clients((err, clients) => {
+//     if (err) throw err;
+//     if (clients.length) {
+//       console.log(`${clients.length} clients connected`);
+//       // updateVehicleLocations();
+//     }
+//   });
+// }
 
-function pollForLocation() {
-  io.of('/').clients((err, clients) => {
-    if (err) throw err;
-    if (clients.length) {
-      console.log(`${clients.length} clients connected`);
-      // updateVehicleLocations();
-    }
-  });
-}
-
-function updateVehicleLocations() {
-  getConfig().then((data) => {
-    // console.log('config data', data);
-    // in time window?
-    if (timeBounds(data.schedule)) {
-      // try to get locations (within last 10 min)
-      assetLocations(data.org, data.devices)
-        .then((updates) => {
-          vehicles = _.uniqBy(vehicles.concat(updates), 'id');
-
-          updates.forEach((item) => {
-            // broadcast most recent ones
-            io.emit('vehicleUpdate', item);
-          });
-        })
-        .catch(((err) => {
-          console.log('failed to get device info', err);
-        }));
-    } else {
-      listener = setTimeout(pollForLocation, 1000 * 60);
-    }
-  });
-}
-
-if (process.env.FAKE_VEHICLE) {
-  const turf = require('@turf/turf');
-
-  nextPoint([-83.045833, 42.331389]);
-
-  function nextPoint(origin) {
-    io.emit('vehicleUpdate', {
-      name: 'Jim Dandy',
-      longitude: origin[0],
-      latitude: origin[1]
-    });
-    setTimeout(() => {
-      const center = origin;
-      const radius = 0.1; 
-      const options = { steps: 10, units: 'kilometers', properties: { foo: 'bar' } };
-      const circle = turf.circle(center, radius, options);
-
-      const bbox = turf.bbox(circle);
-      const position = turf.randomPosition(bbox);
-      nextPoint(position);
-    }, 5000);
-  }
+function updateVehicleLocations(eventID) {
+  assetLocations(eventID)
+    .then((updates) => {
+      const nsp = _.get(sockets, eventID)
+      updates.forEach((item) => {
+        // broadcast most recent ones
+        nsp.emit('vehicleUpdate', item);
+      });
+      setTimeout(updateVehicleLocations.bind(null, eventID), 5000);
+    })
+    .catch(((err) => {
+      console.log('No device updates for id', eventID, err);
+    }));
 }

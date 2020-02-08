@@ -162,16 +162,18 @@ export default new Vuex.Store({
       fetch('/api/status')
         .then(response => response.json())
         .then((myJson) => {
-          store.commit('setStatus', myJson.running);
-          if (myJson.vehicles) {
-            store.commit('updateVehicles', JSON.parse(JSON.stringify(myJson.vehicles)));
-          }
+          console.log('get json', myJson)
+          store.commit('setStatus', myJson.status.running);
+     
+          console.log('trying to connect to socket: ', `/${myJson.event.eventID}`);
+          const socket = io.connect(`/${myJson.event.eventID}`);
+          socket.on('vehicleUpdate', (data) => {
+            store.commit('updateVehicles', data);
+          });
+
         });
 
-      const socket = io.connect('/');
-      socket.on('vehicleUpdate', (data) => {
-        store.commit('updateVehicles', data);
-      });
+      
 
 
       function error(err) {
