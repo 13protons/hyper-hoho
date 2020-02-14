@@ -1,5 +1,8 @@
 <template>
   <div id="app">
+    <div id="logo">
+      <img src="./assets/DBC-Logo_RGB@2x.png" alt="The Detroit Bus Company">
+    </div>
     <Overlay v-if="mapLoaded" />
     <Map/>
   </div>
@@ -43,5 +46,15 @@ body {
   -moz-osx-font-smoothing: grayscale;
   color: #2c3e50;
   width: 100%;
+}
+#logo {
+  position: fixed;
+  top: 1em;
+  left: 1em;
+  background-color: transparent;
+  z-index: 1000;
+  img {
+    width: 180px;
+  }
 }
 </style>

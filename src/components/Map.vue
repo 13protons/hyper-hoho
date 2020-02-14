@@ -7,6 +7,7 @@
 <script>
 import { mapGetters } from 'vuex';
 import PulsingDot from '../lib/dot';
+import * as omnivore from '@mapbox/leaflet-omnivore';
 
 let map;
 
@@ -22,7 +23,7 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(['vehicles', 'inFocus', 'myPosition', 'mapLoaded', 'routes', 'hotels', 'mustHaves', 'niceHaves', 'showHotels', 'overlayStatus', 'bounds']),
+    ...mapGetters(['vehicles', 'inFocus', 'myPosition', 'mapLoaded', 'routes', 'hotels', 'mustHaves', 'niceHaves', 'showHotels', 'overlayStatus', 'bounds', 'kml']),
     vehicleCollection() {
       return this.asPoints(this.vehicles);
     },
@@ -202,19 +203,21 @@ export default {
       });
     },
     addRouteLayer() {
-      this.routes.forEach((route) => {
-        this.addSourceFromCollection(route);
+      omnivore.kml.parse(this.kml).addTo(map);
+      // this.routes.forEach((route) => {
+      //   this.addSourceFromCollection(route);
+      //   console.log('adding route', route)
 
-        map.addLayer({
-          id: route.id,
-          source: route.id,
-          type: 'line',
-          paint: {
-            'line-width': 3,
-            'line-color': '#33C9EB'
-          }
-        });
-      });
+      //   map.addLayer({
+      //     id: route.id,
+      //     source: route.id,
+      //     type: 'line',
+      //     paint: {
+      //       'line-width': 3,
+      //       'line-color': '#33C9EB'
+      //     }
+      //   });
+      // });
     },
     addSourceFromCollection(collection) {
       map.addSource(collection.id, {
