@@ -6,8 +6,9 @@
 
 <script>
 import { mapGetters } from 'vuex';
+import { get } from 'lodash';
 import PulsingDot from '../lib/dot';
-import * as omnivore from '@mapbox/leaflet-omnivore';
+// import * as omnivore from '@mapbox/leaflet-omnivore';
 
 let map;
 
@@ -23,7 +24,7 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(['vehicles', 'inFocus', 'myPosition', 'mapLoaded', 'routes', 'hotels', 'mustHaves', 'niceHaves', 'showHotels', 'overlayStatus', 'bounds', 'kml']),
+    ...mapGetters(['vehicles', 'inFocus', 'myPosition', 'mapLoaded', 'layers', 'overlayStatus', 'bounds', 'primaryLayer', 'otherLayers', 'event']),
     vehicleCollection() {
       return this.asPoints(this.vehicles);
     },
@@ -36,18 +37,18 @@ export default {
       });
     },
     focusOffset() {
-      let full = window.innerHeight;
-      let ratios = {
+      const full = window.innerHeight;
+      const ratios = {
         full: 1,
-        middle: .5,
-        bottom: .25,
+        middle: 0.5,
+        bottom: 0.25,
         hidden: 0
-      }
+      };
       return (ratios[this.overlayStatus] * full * -1);
     }
   },
   watch: {
-    overlayStatus(newVal) {
+    overlayStatus() {
       this.reFocus();
     },
     vehicleCollection(newVal) {
@@ -55,13 +56,6 @@ export default {
         window.requestAnimationFrame(() => {
           map.getSource(this.vehicleLayerName).setData(newVal);
         });
-      }
-    },
-    showHotels(newVal) {
-      if (newVal) {
-        map.setLayoutProperty(this.hotels.id, 'visibility', 'visible');
-      } else {
-        map.setLayoutProperty(this.hotels.id, 'visibility', 'none');
       }
     },
     inFocus(newVal) {
@@ -89,12 +83,12 @@ export default {
         center = [
           obj.longitude,
           obj.latitude
-        ]
+        ];
       }
 
       const options = {
         duration: 500,
-        center: center,
+        center
         // offset: [0, this.focusOffset ]
       };
 
@@ -122,12 +116,13 @@ export default {
     addDataLayers() {
       this.$store.dispatch('getDataLayers')
         .then(() => {
-          this.addRouteLayer();
-          this.addHotelLayer();
-          this.addMustLayer();
-          this.addNiceLayer();
+          this.addPrimaryLayer();
+          this.addOtherLayers();
+          // this.addHotelLayer();
+          // this.addMustLayer();
+          // this.addNiceLayer();
 
-        console.log('bounds to fit', JSON.parse(JSON.stringify(this.bounds)));
+          console.log('bounds to fit', JSON.parse(JSON.stringify(this.bounds)));
 
           map.fitBounds(JSON.parse(JSON.stringify(this.bounds)), {
             padding: {
@@ -140,89 +135,77 @@ export default {
           });
         });
     },
-    addMustLayer() {
-      this.addSourceFromCollection(this.mustHaves);
+    addPrimaryLayer() {
+      // console.log('### primary layer', this.event.icons[0]);
+      const images = get(this, 'event.icons', undefined); //'harbor-15')
+      const waitForIcons = Promise.all(images.map((imageData, index) => {
+        return new Promise((resolve, reject) => {
+          map.loadImage(imageData, (err, image)=>{
+            if (err) { return reject(err); }
+            map.addImage(`icon-${index}`, image);
+            resolve(`icon-${index}`);
+          });
+        });
+      }));
 
-      map.addLayer({
-        id: this.mustHaves.id,
-        source: this.mustHaves.id,
-        type: 'symbol',
-        layout: {
-          'icon-image': 'star-15',
-          // 'text-field': '{name}',
-          // 'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
-          // 'text-offset': [0, 0.6],
-          // 'text-anchor': 'top'
-
-        }
-      });
-    },
-    addNiceLayer() {
-      this.addSourceFromCollection(this.niceHaves);
-
-      map.addLayer({
-        id: this.niceHaves.id,
-        source: this.niceHaves.id,
-        type: 'symbol',
-        paint: {
-          'icon-opacity': [
-            'interpolate', ['linear'], ['zoom'],
-            14, ['literal', 0.0],
-            15, ['literal', 1.0],
-          ]
-        },
-        layout: {
-          'icon-image': 'marker-15',
-        }
-      });
-    },
-    addHotelLayer() {
-      this.addSourceFromCollection(this.hotels);
-
-      map.addLayer({
-        id: this.hotels.id,
-        source: this.hotels.id,
-        type: 'symbol',
-        layout: {
-          'icon-image': 'lodging-15',
-          // 'text-field': '{name}',
-          // 'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
-          // 'text-offset': [0, 0.6],
-          // 'text-anchor': 'top'
-          visibility: this.showHotels ? 'visible' : 'none'
-        },
-        paint: {
-          // "text-size": 8,
-          'icon-color': 'green',
-          'icon-opacity': [
-            'interpolate', ['linear'], ['zoom'],
-            11, ['literal', 0.0],
-            12, ['literal', 1.0],
-          ]
-        }
-      });
-    },
-    addRouteLayer() {
-      omnivore.kml.parse(this.kml).addTo(map);
-      // this.routes.forEach((route) => {
-      //   this.addSourceFromCollection(route);
-      //   console.log('adding route', route)
-
-      //   map.addLayer({
-      //     id: route.id,
-      //     source: route.id,
-      //     type: 'line',
-      //     paint: {
-      //       'line-width': 3,
-      //       'line-color': '#33C9EB'
-      //     }
-      //   });
-      // });
-    },
-    addSourceFromCollection(collection) {
-      map.addSource(collection.id, {
+      map.addSource('primary', {
         type: 'geojson',
-        data: collection
+        data: get(this, 'primaryLayer.FeatureCollection', {})
+      });
+
+      map.addLayer({
+        id: 'route',
+        source: 'primary',
+        type: 'line',
+        paint: {
+          'line-width':  ['get', 'stroke-width'],
+          'line-color': ['get', 'stroke']
+        },
+        filter: ['==', '$type', 'LineString']
+      });
+
+      waitForIcons.then(() => {
+        map.addLayer({
+          id: 'primaryPoints',
+          type: 'symbol',
+          source: 'primary',
+          layout: {
+            'icon-image': images[0] ? 'icon-0' : 'harbor-15',
+            'icon-size': 1,
+            'icon-allow-overlap': true
+          },
+          filter: ['==', '$type', 'Point']
+        });
+      });
+    },
+    addOtherLayers() {
+      this.otherLayers.forEach((layer, index) => {
+        map.addSource(`other-${index}`, {
+          type: 'geojson',
+          data: get(layer, 'FeatureCollection', {})
+        });
+
+        map.addLayer({
+          id: `route-${index}`,
+          source: `other-${index}`,
+          type: 'line',
+          paint: {
+            'line-width':  ['get', 'stroke-width'],
+            'line-color': ['get', 'stroke']
+          },
+          filter: ['==', '$type', 'LineString']
+        });
+
+        map.addLayer({
+          id: `points-${index}`,
+          type: 'symbol',
+          source: `other-${index}`,
+          layout: {
+            'icon-image': 'harbor-15',
+            'icon-size': 1
+          },
+          filter: ['==', '$type', 'Point']
+        });
       });
     },
     mapDidLoad() {
@@ -246,17 +229,19 @@ export default {
 
         this.$store.dispatch('tryFocus', elements).then((subject) => {
           // reFocus
-          console.log('props', subject.properties);
-          const coords = JSON.parse(subject.properties.coord);
+          console.log('props', subject);
+          const coords = get(subject, 'properties.center', undefined);
 
-          new mapboxgl.Popup({ closeOnClick: true })
-            .setLngLat(coords)
-            .setText(subject.properties.name)
-            .addTo(map);
+          if (coords) {
+            new mapboxgl.Popup({ closeOnClick: true })
+              .setLngLat(JSON.parse(coords))
+              .setText(subject.properties.name)
+              .addTo(map);
 
-          map.easeTo({
-            center: coords
-          });
+            map.easeTo({
+              center: JSON.parse(coords)
+            });
+          }
         }, (err) => {
           console.warn('nothing interesting there...', err);
         });

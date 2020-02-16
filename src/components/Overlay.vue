@@ -1,11 +1,16 @@
 <template>
   <div id="overlay" v-touch:swipe="swipeUpHandler" :class="overlayStatus">
-    <div class="overlay-content">
-      <p>{{ statusMessage }}</p>
- 
-      <div class="control">
+    <div class="overlay-content"> 
+      <!-- <div class="control">
         <input class="input" type="text" placeholder="Search Interesting Places...">
+      </div> -->
+      <div v-if="event">
+        <h2 v-html="event.title" class="title is-4"></h2>
+        <p v-html="event.description"></p>
+        <hr/>
       </div>
+
+      <p>{{ statusMessage }}</p>
 
 
       <div v-if="displayFocusInfo">
@@ -18,10 +23,6 @@
         </p>
       </div>
       <div>
-        <label class="checkbox" v-if="hotels">
-          <input type="checkbox" v-model="showHotels" @change="syncHotelToggle" />
-          Hotels
-        </label>
         <p>Position: {{overlayStatus}}</p>
       </div>
     </div>
@@ -39,7 +40,7 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(['vehicles', 'inFocus', 'status', 'hotels', 'mustHaves', 'niceHaves', 'mapLoaded', 'overlayStatus']),
+    ...mapGetters(['vehicles', 'inFocus', 'status', 'mapLoaded', 'overlayStatus', 'event']),
     displayFocusInfo() {
       try {
         return !!this.inFocus.name;
@@ -72,13 +73,9 @@ export default {
     unfollow() {
       this.$store.commit('clearFocus');
     },
-    syncHotelToggle() {
-      console.log('sync hotel toggle', this.showHotels);
-      this.$store.commit('setShowHotels', this.showHotels);
-    },
     addDataLayers() {
       this.$store.dispatch('getDataLayers').then((data) => {
-        console.log('got some layers overlay', data);
+        console.log('got some event overlay', data);
         // add them to the map
       });
     }

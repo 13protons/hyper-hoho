@@ -1,5 +1,6 @@
 import Vue from 'vue';
 import Vuex from 'vuex';
+import { get } from 'lodash';
 
 Vue.use(Vuex);
 
@@ -8,6 +9,17 @@ const geoOptions = {
   timeout: 15000,
   maximumAge: 0
 };
+
+const overlays = {
+  0: 'hidden',
+  1: 'bottom',
+  2: 'middle',
+  3: 'full'
+};
+
+function contains(text, search) {
+  return text.indexOf(search) > -1;
+}
 
 let fetchLayers;
 
@@ -19,11 +31,12 @@ export default new Vuex.Store({
     position: {},
     layers: [],
     mapLoaded: false,
-    showHotels: false,
     tooltipVisible: false,
     tooltipContent: '',
     overlayis: 1,
-    bounds: undefined
+    bounds: undefined,
+    event: {},
+    knownIds: []
   },
   getters: {
     inFocus(state) {
@@ -32,58 +45,32 @@ export default new Vuex.Store({
       }
       return Object.values(state.vehicles).find(item => item.name === state.inFocus);
     },
-    showHotels(state) { return state.showHotels; },
-    showMustHaves(state) { return state.showMustHaves; },
-    showNiceHaves(state) { return state.showNiceHaves; },
-    mapLoaded(state) {
-      return state.mapLoaded;
+    mapLoaded(state) { return state.mapLoaded; },
+    vehicles(state) { return state.vehicles; },
+    myPosition(state) { return state.position; },
+    status(state) { return state.isRunning; },
+    layers(state) { return state.layers; },
+    overlayStatus(state) { return overlays[state.overlayis]; },
+    bounds(state) { return state.bounds; },
+    event(state) { return state.event; },
+    primaryLayer(state) {
+      return state.layers[0];
     },
-    vehicles(state) {
-      return state.vehicles;
-    },
-    myPosition(state) {
-      return state.position;
-    },
-    status(state) {
-      return state.isRunning;
-    },
-    layers(state) {
-      return state.layers;
-    },
-    routes(state) {
-      return state.layers.filter(item => contains(item.id, 'directions'));
-    },
-    hotels(state) {
-      return state.layers.find(item => contains(item.id, 'hotel'));
-    },
-    mustHaves(state) {
-      return state.layers.find(item => contains(item.id, 'must'));
-    },
-    niceHaves(state) {
-      return state.layers.find(item => contains(item.id, 'nice'));
-    },
-    overlayStatus(state) {
-      let overlays = {
-        '0': 'hidden',
-        '1': 'bottom',
-        '2': 'middle',
-        '3': 'full'
-      }
-      return overlays[state.overlayis];
-    },
-    bounds(state) {
-      return state.bounds;
-    }
+    otherLayers(state) { return state.layers.slice(1); }
   },
   mutations: {
-    setShowHotels(state, data) { state.showHotels = data; },
-    setShowMustHaves(state, data) { state.showMustHaves = data; },
-    setShowNiceHaves(state, data) { state.showNiceHaves = data; },
     mapDidLoad(state) {
       state.mapLoaded = true;
     },
     setLayers(state, data) {
       state.layers = data;
+      state.knownIds = [];
+
+      data.forEach((layer) => {
+        const features = get(layer, 'FeatureCollection.features');
+        features.forEach(feature => state.knownIds.push(get(feature, 'properties.id')));
+      });
+      console.log('knownIds', state.knownIds);
     },
     setStatus(state, data) {
       state.isRunning = !!data;
@@ -110,71 +97,61 @@ export default new Vuex.Store({
     },
     overlayUp(state) {
       if (state.overlayis < 3) {
-        state.overlayis++;
+        state.overlayis += 1;
       }
     },
     overlayDown(state) {
       if (state.overlayis > 0) {
-        state.overlayis--;
+        state.overlayis -= 1;
       }
     },
-    setBounds(state, data) {
-      state.bounds = data
-    }
+    setBounds(state, data) { state.bounds = data; },
+    setEvent(state, data) { state.event = data; },
   },
   actions: {
     tryFocus(store, data) {
-      const knownItem = data.find(item => store.state.layers.find((layer) => {
-        if (contains(item.source, 'directions')) {
-          return false;
-        }
-        return layer.id === item.source;
-      }));
-
       console.log('trying to focus on elements', data);
+      const knownItem = data.find(item => contains(store.state.knownIds, get(item, 'properties.id')));
+
       if (knownItem) {
         return Promise.resolve(knownItem);
       }
-      return Promise.reject('no items found');
-
-
-      // return mustHave || hotel || niceHave || undefined;
+      return Promise.reject(new Error('no items found'));
     },
     getDataLayers(store) {
-      if (fetchLayers) {
-        return fetchLayers;
-      }
-      return fetchLayers = new Promise((resolve, reject) => {
-        if (store.layers) {
-          return resolve(store.layers);
-        }
+      if (!fetchLayers) {
+        fetchLayers = new Promise((resolve, reject) => {
+          if (store.layers) {
+            return resolve(store.layers);
+          }
 
-        fetch('/api/layers')
-          .then(response => response.json())
-          .then((data) => {
-            store.commit('setLayers', data.layers);
-            store.commit('setBounds', data.extents);
-            resolve(data);
-          });
-      });
+          return fetch('/api/layers')
+            .then(response => response.json())
+            .then((data) => {
+              console.log('got layers data', data);
+              store.commit('setLayers', data.layers);
+              store.commit('setBounds', data.extents);
+              resolve(data);
+            })
+            .catch(reject);
+        });
+      }
+      return fetchLayers;
     },
     initializeStore(store) {
       fetch('/api/status')
         .then(response => response.json())
         .then((myJson) => {
-          console.log('get json', myJson)
-          store.commit('setStatus', myJson.status.running);
-     
+          console.log('get json', myJson);
+          store.commit('setStatus', myJson.status);
+          store.commit('setEvent', myJson.event);
+
           console.log('trying to connect to socket: ', `/${myJson.event.eventID}`);
           const socket = io.connect(`/${myJson.event.eventID}`);
           socket.on('vehicleUpdate', (data) => {
             store.commit('updateVehicles', data);
           });
-
         });
-
-      
-
 
       function error(err) {
         console.warn(`ERROR(${err.code}): ${err.message}`);
@@ -182,15 +159,11 @@ export default new Vuex.Store({
       navigator.geolocation.getCurrentPosition((pos) => {
         console.log('got first position');
         store.commit('updateMyPosition', pos.coords);
-        navigator.geolocation.watchPosition((pos) => {
+        navigator.geolocation.watchPosition((position) => {
           console.log('after watching position');
-          store.commit('updateMyPosition', pos.coords);
+          store.commit('updateMyPosition', position.coords);
         }, error, geoOptions);
       }, error, geoOptions);
     }
   },
 });
-
-function contains(text, search) {
-  return text.indexOf(search) > -1;
-}
