@@ -69,7 +69,8 @@
       "comma-dangle": 0,
       "no-undef": 1,
       "no-unused-vars": 1,
-      "no-console": 0
+      "no-console": 0,
+      "arrow-body-style": 1
     },
     "parserOptions": {
       "parser": "babel-eslint"

@@ -11,10 +11,9 @@ const geoOptions = {
 };
 
 const overlays = {
-  0: 'hidden',
-  1: 'bottom',
-  2: 'middle',
-  3: 'full'
+  0: 'small',
+  1: 'large',
+  2: 'full'
 };
 
 function contains(text, search) {
@@ -33,7 +32,7 @@ export default new Vuex.Store({
     mapLoaded: false,
     tooltipVisible: false,
     tooltipContent: '',
-    overlayis: 1,
+    overlayis: 0,
     bounds: undefined,
     event: {},
     knownIds: []

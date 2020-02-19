@@ -16,10 +16,39 @@ const dataLayers = require('./lib/dataLayers');
 
 const PORT = process.env.PORT || 3030;
 const vehicles = [];
+const updateHandlers = {}
 
-const sockets = {};
+let sockets = {};
 
 server.listen(PORT);
+
+io.of((name, query, next) => {
+  console.log('got a dynamic client connecting to...', name);
+  getConfig(eventIDForNamespace(name)).then((data) => {
+    console.log('event id ok - forwarding to connection handler');
+    next(null, true);
+  })
+  .catch((err)=>{
+    console.log('bad event id', err);
+    next(null, false);
+  })
+}).on('connect', (socket) => {
+  console.log('after socket connect', socket.nsp.name);
+  updateVehicleLocations(socket.nsp.name)
+
+  socket.on('disconnect', (reason) => {
+    console.log(`disconnecting from ${socket.nsp.name} due to: ${reason}`)
+    socket.nsp.clients((error, clients) => {
+      if (error) throw error;
+      if (!clients.length) {
+        console.log(`no more connection for ${socket.nsp.name} - clearing interval`)
+        clearInterval(updateHandlers[socket.nsp.name]);
+      }
+      console.log(clients); // => [PZDoMHjiu8PYfRiKAAAF, Anw2LatarvGVVXEIAAAD]
+    });
+  })
+})
+
 
 app
   .use(cookiesMiddleware())
@@ -59,46 +88,33 @@ app.get('/api/status', (req, res) => {
       event: undefined
     })
   })
-
-  if (eventID && !sockets.eventID) {
-    const nsp = io.of(`/${eventID}`);
-    _.set(sockets, eventID, nsp);
-    nsp.on('connection', (socket) => {
-      // console.log(`there's a guest in the ${eventID} room.`)
-      nsp.clients((err, clients) => {
-        // if (!err) { console.log(`there are now ${clients.length} clients`); }
-      });
-      updateVehicleLocations(eventID)
-
-      socket.once('disconnect', (reason) => {
-        console.log(`disconnected because of`, reason)
-        nsp.clients((err, clients) => {
-          if (err) throw err;
-          if (!clients.length) {
-            console.log(`no more clients in ${eventID}`);
-            _.unset(sockets, eventID);
-          }
-        });
-      });
-    })
-  }
 });
 
 app.use('/', express.static('./dist'));
 
-function updateVehicleLocations(eventID) {
-  assetLocations(eventID)
-    .then((updates) => {
-      const nsp = _.get(sockets, eventID)
-      if (nsp) {
-        updates.forEach((item) => {
-          // broadcast most recent ones
-          nsp.emit('vehicleUpdate', item);
-        });
-      }
-      setTimeout(updateVehicleLocations.bind(null, eventID), 5000);
-    })
-    .catch(((err) => {
-      console.log('No device updates for id', eventID, err);
-    }));
+function updateVehicleLocations(name) {
+  if (updateHandlers[name]) { return; }
+  console.log('watching vehicles for ', name);
+  const eventID = eventIDForNamespace(name);
+
+  const updatr = _.throttle(function(updates) {
+    const nsp = io.of(name);
+    console.log('sending updates to ', name)
+    updates.forEach((item) => {
+      // broadcast most recent ones
+      nsp.emit('vehicleUpdate', item);
+    });
+  }, 5000, { 'trailing': true });
+  
+  updateHandlers[name] = setInterval(function() {
+    assetLocations(eventID)
+      .then(updatr)
+      .catch(((err) => {
+        console.log('No device updates for id', eventID, err);
+      }));
+  }, 5000);
+}
+
+function eventIDForNamespace(str) {
+  return str.replace(/\//g, '');
 }

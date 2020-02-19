@@ -140,7 +140,7 @@ export default {
       const images = get(this, 'event.icons', undefined); //'harbor-15')
       const waitForIcons = Promise.all(images.map((imageData, index) => {
         return new Promise((resolve, reject) => {
-          map.loadImage(imageData, (err, image)=>{
+          map.loadImage(imageData, (err, image) => {
             if (err) { return reject(err); }
             map.addImage(`icon-${index}`, image);
             resolve(`icon-${index}`);
@@ -158,7 +158,7 @@ export default {
         source: 'primary',
         type: 'line',
         paint: {
-          'line-width':  ['get', 'stroke-width'],
+          'line-width': ['get', 'stroke-width'],
           'line-color': ['get', 'stroke']
         },
         filter: ['==', '$type', 'LineString']
@@ -170,9 +170,9 @@ export default {
           type: 'symbol',
           source: 'primary',
           layout: {
-            'icon-image': images[0] ? 'icon-0' : 'harbor-15',
+            'icon-image': images[0] ? 'icon-0' : 'marker-15',
             'icon-size': 1,
-            'icon-allow-overlap': true
+            'icon-allow-overlap': true,
           },
           filter: ['==', '$type', 'Point']
         });
@@ -190,7 +190,7 @@ export default {
           source: `other-${index}`,
           type: 'line',
           paint: {
-            'line-width':  ['get', 'stroke-width'],
+            'line-width': ['get', 'stroke-width'],
             'line-color': ['get', 'stroke']
           },
           filter: ['==', '$type', 'LineString']
@@ -201,7 +201,7 @@ export default {
           type: 'symbol',
           source: `other-${index}`,
           layout: {
-            'icon-image': 'harbor-15',
+            'icon-image': 'marker-15',
             'icon-size': 1
           },
           filter: ['==', '$type', 'Point']
