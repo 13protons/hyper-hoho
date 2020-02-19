@@ -7,29 +7,38 @@
   "scripts": {
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
-    "test": "mocha ./tests/*.spec.js",
+    "test": "mocha ./tests/*.spec.js --watch",
     "lint": "vue-cli-service lint",
     "build-watch": "vue-cli-service build-watch",
     "heroku-postbuild": "npm run build"
   },
   "dependencies": {
+    "@mapbox/leaflet-omnivore": "^0.3.4",
     "@turf/turf": "^5.1.6",
     "airtable": "^0.7.1",
     "body-parser": "^1.19.0",
+    "cookie-session": "^1.4.0",
     "core-js": "^2.6.5",
     "express": "^4.17.1",
     "kml-utils": "^1.0.1",
     "lodash": "^4.17.15",
+    "marked": "^0.8.0",
     "moment": "^2.24.0",
+    "node-cache": "^5.1.0",
     "register-service-worker": "^1.6.2",
     "request": "^2.88.0",
     "request-promise": "^4.2.4",
+    "sanitize-html": "^1.21.1",
     "socket.io": "^2.2.0",
+    "universal-cookie-express": "^4.0.3",
     "vue": "^2.6.10",
-    "vuex": "^3.0.1"
+    "vue2-touch-events": "^2.0.0",
+    "vuex": "^3.0.1",
+    "xml2json": "^0.12.0",
+    "xmlserializer": "^0.6.1"
   },
   "devDependencies": {
-    "@tmcw/togeojson": "^3.0.1",
+    "@tmcw/togeojson": "^3.2.0",
     "@vue/cli-plugin-babel": "^3.10.0",
     "@vue/cli-plugin-eslint": "^3.10.0",
     "@vue/cli-plugin-pwa": "^3.10.0",
@@ -59,7 +68,9 @@
     "rules": {
       "comma-dangle": 0,
       "no-undef": 1,
-      "no-unused-vars": 1
+      "no-unused-vars": 1,
+      "no-console": 0,
+      "arrow-body-style": 1
     },
     "parserOptions": {
       "parser": "babel-eslint"

@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>NIGHT LOOP February 2020</name>
+    <description/>
+    <Style id="icon-1869-9C27B0-labelson">
+      <IconStyle>
+        <color>ffb0279c</color>
+        <scale>1</scale>
+        <Icon>
+          <href>http://www.gstatic.com/mapspro/images/stock/503-wht-blank_maps.png</href>
+        </Icon>
+      </IconStyle>
+    </Style>
+    <Style id="icon-1869-9C27B0-labelson-nodesc">
+      <IconStyle>
+        <color>ffb0279c</color>
+        <scale>1</scale>
+        <Icon>
+          <href>http://www.gstatic.com/mapspro/images/stock/503-wht-blank_maps.png</href>
+        </Icon>
+      </IconStyle>
+      <BalloonStyle>
+        <text><![CDATA[<h3>$[name]</h3>]]></text>
+      </BalloonStyle>
+    </Style>
+    <Style id="line-9C27B0-6000-nodesc-normal">
+      <LineStyle>
+        <color>ffb0279c</color>
+        <width>6</width>
+      </LineStyle>
+      <BalloonStyle>
+        <text><![CDATA[<h3>$[name]</h3>]]></text>
+      </BalloonStyle>
+    </Style>
+    <Style id="line-9C27B0-6000-nodesc-highlight">
+      <LineStyle>
+        <color>ffb0279c</color>
+        <width>9</width>
+      </LineStyle>
+      <BalloonStyle>
+        <text><![CDATA[<h3>$[name]</h3>]]></text>
+      </BalloonStyle>
+    </Style>
+    <StyleMap id="line-9C27B0-6000-nodesc">
+      <Pair>
+        <key>normal</key>
+        <styleUrl>#line-9C27B0-6000-nodesc-normal</styleUrl>
+      </Pair>
+      <Pair>
+        <key>highlight</key>
+        <styleUrl>#line-9C27B0-6000-nodesc-highlight</styleUrl>
+      </Pair>
+    </StyleMap>
+    <Folder>
+      <name>Bar Stops</name>
+      <Placemark>
+        <name><![CDATA[#5: PJ's Lager House]]></name>
+        <description>Usually has shows. Great time!</description>
+        <styleUrl>#icon-1869-9C27B0-labelson</styleUrl>
+        <Point>
+          <coordinates>
+            -83.0632722,42.331725,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>#7: The Sugar House</name>
+        <styleUrl>#icon-1869-9C27B0-labelson-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -83.0757833,42.3315639,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>#8: Takoi</name>
+        <description>Pickup on Michigan Avenue!</description>
+        <styleUrl>#icon-1869-9C27B0-labelson</styleUrl>
+        <Point>
+          <coordinates>
+            -83.0808338,42.3316844,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>#9: Two James Spirits</name>
+        <styleUrl>#icon-1869-9C27B0-labelson-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -83.0794821,42.3311187,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>#10: MotorCity Wine</name>
+        <styleUrl>#icon-1869-9C27B0-labelson-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -83.0730077,42.3311594,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>#11: Lafayette Coney Island</name>
+        <description><![CDATA[<img src="https://doc-04-0o-mymaps.googleusercontent.com/untrusted/hostedimage/is7dc1b6vqhb8adsceu8fosc4o/gpu30sdiqvt0p68au2kh6pi5vs/1581789600000/jACTSfbUW1rjYNPBHVyPOd9fY8pkj5cC/04346906803801212326/1AF2TALqrvzpi8FDG8vPX4B9TRsTmFB0vcYfwS3ooafmaYMHFRRifl0kCzWLth44j_rvSM5PAtGNOtRGexGwQ6bYZs_6inBiov-VEhFgTGzEnRmoy1fdchmqOJFi0qPDAsnxU8lg1O9xRmqphMW-M3VI7hOJpEWI3g8Is0rddQXOA-6xsPBLwFE6sGKlLK3Hx0pM_yzhZw-lkVUMTjcrc7t6mTXlSc-CtUTcVub6CVHWgJglk4BK7AhQgEu2zqgtrq2QXc-4MaiypVuXIyWooZqJ3Shm9H8Szfg?session=0&fife" height="200" width="auto" /><br><br>The superior coney! Go downstairs on a BATHROOM ADVENTURE and wash your dirty hands. Re-coney, recharge and rejoin the fight!]]></description>
+        <styleUrl>#icon-1869-9C27B0-labelson</styleUrl>
+        <ExtendedData>
+          <Data name="gx_media_links">
+            <value><![CDATA[https://doc-04-0o-mymaps.googleusercontent.com/untrusted/hostedimage/is7dc1b6vqhb8adsceu8fosc4o/gpu30sdiqvt0p68au2kh6pi5vs/1581789600000/jACTSfbUW1rjYNPBHVyPOd9fY8pkj5cC/04346906803801212326/1AF2TALqrvzpi8FDG8vPX4B9TRsTmFB0vcYfwS3ooafmaYMHFRRifl0kCzWLth44j_rvSM5PAtGNOtRGexGwQ6bYZs_6inBiov-VEhFgTGzEnRmoy1fdchmqOJFi0qPDAsnxU8lg1O9xRmqphMW-M3VI7hOJpEWI3g8Is0rddQXOA-6xsPBLwFE6sGKlLK3Hx0pM_yzhZw-lkVUMTjcrc7t6mTXlSc-CtUTcVub6CVHWgJglk4BK7AhQgEu2zqgtrq2QXc-4MaiypVuXIyWooZqJ3Shm9H8Szfg?session=0&fife]]></value>
+          </Data>
+        </ExtendedData>
+        <Point>
+          <coordinates>
+            -83.0488555,42.3314905,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>#1: Checker Bar Detroit</name>
+        <description>THIS IS PARTY HQ! Be back here by 1:00AM if you want your ride back to Royal Oak/Ferndale</description>
+        <styleUrl>#icon-1869-9C27B0-labelson</styleUrl>
+        <Point>
+          <coordinates>
+            -83.0440183,42.3312434,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>#3: Punch Bowl Social</name>
+        <description>Pickup on the OTHER side of Broadway. Not on the Punch Bowl Side.</description>
+        <styleUrl>#icon-1869-9C27B0-labelson</styleUrl>
+        <Point>
+          <coordinates>
+            -83.0468348,42.3350848,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>#4: The Royce Detroit</name>
+        <styleUrl>#icon-1869-9C27B0-labelson-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -83.0522039,42.3365468,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>#12: Grand Trunk Pub</name>
+        <styleUrl>#icon-1869-9C27B0-labelson-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -83.0456204,42.3305957,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>#2: The Well</name>
+        <description><![CDATA[Your gateway to Greektown! Don't get puke on your shoes.]]></description>
+        <styleUrl>#icon-1869-9C27B0-labelson</styleUrl>
+        <Point>
+          <coordinates>
+            -83.0448007,42.334509,0
+          </coordinates>
+        </Point>
+      </Placemark>
+      <Placemark>
+        <name>#6: Corktown Tavern</name>
+        <styleUrl>#icon-1869-9C27B0-labelson-nodesc</styleUrl>
+        <Point>
+          <coordinates>
+            -83.0699029,42.3316196,0
+          </coordinates>
+        </Point>
+      </Placemark>
+    </Folder>
+    <Folder>
+      <name>Route</name>
+      <Placemark>
+        <name>NIGHT LOOP</name>
+        <styleUrl>#line-9C27B0-6000-nodesc</styleUrl>
+        <LineString>
+          <tessellate>1</tessellate>
+          <coordinates>
+            -83.063205,42.331512,0
+            -83.064052,42.331468,0
+            -83.07579,42.331405,0
+            -83.0808,42.331373,0
+            -83.081951,42.331379,0
+            -83.082165,42.331776,0
+            -83.082077,42.331813,0
+            -83.08066,42.331813,0
+            -83.080379,42.331312,0
+            -83.079531,42.331314,0
+            -83.073022,42.331347,0
+            -83.064028,42.331389,0
+            -83.063189,42.331437,0
+            -83.061732,42.331542,0
+            -83.060396,42.331621,0
+            -83.051382,42.331639,0
+            -83.050722,42.331619,0
+            -83.04885,42.331631,0
+            -83.047042,42.331655,0
+            -83.047018,42.331151,0
+            -83.04694,42.33105,0
+            -83.046745,42.330969,0
+            -83.046626,42.330939,0
+            -83.046406,42.330795,0
+            -83.04531,42.329386,0
+            -83.045021,42.329517,0
+            -83.045804,42.330548,0
+            -83.046249,42.331143,0
+            -83.046249,42.331385,0
+            -83.044752,42.331381,0
+            -83.04449,42.331421,0
+            -83.044041,42.331427,0
+            -83.043409,42.33144,0
+            -83.043253,42.331538,0
+            -83.043234,42.331694,0
+            -83.043326,42.331906,0
+            -83.043403,42.332093,0
+            -83.043486,42.332134,0
+            -83.04412,42.333112,0
+            -83.044624,42.333877,0
+            -83.044876,42.334094,0
+            -83.045002,42.334226,0
+            -83.045158,42.334448,0
+            -83.045431,42.33469,0
+            -83.04593,42.334891,0
+            -83.046029,42.33499,0
+            -83.046713,42.335267,0
+            -83.049551,42.336485,0
+            -83.049438,42.336639,0
+            -83.049377,42.336865,0
+            -83.049395,42.337185,0
+            -83.049524,42.337595,0
+            -83.052142,42.336437,0
+            -83.052406,42.336324,0
+            -83.05183,42.335999,0
+            -83.05368,42.333619,0
+            -83.053938,42.333484,0
+            -83.057843,42.33227,0
+            -83.057746,42.331731,0
+            -83.057742,42.331692,0
+            -83.060426,42.331682,0
+            -83.063158,42.331512,0
+          </coordinates>
+        </LineString>
+      </Placemark>
+    </Folder>
+  </Document>
+</kml>
