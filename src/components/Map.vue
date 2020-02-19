@@ -8,7 +8,6 @@
 import { mapGetters } from 'vuex';
 import { get } from 'lodash';
 import PulsingDot from '../lib/dot';
-// import * as omnivore from '@mapbox/leaflet-omnivore';
 
 let map;
 
